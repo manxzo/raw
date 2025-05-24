@@ -1,8 +1,15 @@
 #!/bin/bash
+set -e
 
 source /venv/main/bin/activate
-COMFYUI_DIR=${WORKSPACE}/ComfyUI
+export WORKSPACE="${WORKSPACE:-/workspace}"
+cd "$WORKSPACE"
 
+# --- Ensure base tools are available ---
+apt-get update
+apt-get install -y git wget curl npm
+
+COMFYUI_DIR="${WORKSPACE}/ComfyUI"
 # Packages are installed after nodes so we can fix them...
 
 APT_PACKAGES=(
@@ -221,7 +228,6 @@ function download_main_models() {
     done
 }
 
-# Allow user to disable provisioning if they started with a script they didn't want
 if [[ ! -f /.noprovisioning ]]; then
     provisioning_start
     install_sillytavern
