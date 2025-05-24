@@ -6,28 +6,39 @@ log_info()  { echo -e "\033[1;34m[INFO]\033[0m $*"; }
 log_warn()  { echo -e "\033[1;33m[WARN]\033[0m $*"; }
 log_error() { echo -e "\033[1;31m[ERROR]\033[0m $*"; }
 
-USER_HOME="/home/vastai"
 WORKSPACE="/workspace"
 cd "$WORKSPACE"
 
-# --- Make sure minimal tools are present (should already be in AI Dock images) ---
-which git  || { log_error "git not found"; exit 1; }
-which npm  || { log_error "npm not found"; exit 1; }
-which wget || { log_error "wget not found"; exit 1; }
-which pip  || { log_error "pip not found"; exit 1; }
+# --- Check essential tools ---
+for x in git npm wget micromamba; do
+  command -v $x &>/dev/null || { log_error "$x not found, check your AI Dock image!"; exit 1; }
+done
 
-# -- ComfyUI (via comfy-cli, system Python) --
+# --- Create and activate micromamba env for Python 3.11.6 ---
+if ! micromamba env list | grep -q py311; then
+  log_info "Creating Python 3.11.6 environment with micromamba…"
+  micromamba create -y -n py311 python=3.11.6 pip
+else
+  log_info "micromamba env py311 already exists."
+fi
+
+eval "$(micromamba shell hook -s bash)"
+micromamba activate py311
+
+# --- Ensure pip and comfy-cli in env ---
+pip install --upgrade pip
+pip install comfy-cli
+
+# --- ComfyUI install ---
 if [[ ! -d "$WORKSPACE/comfy" ]]; then
   log_info "Installing ComfyUI at $WORKSPACE/comfy…"
-  pip install --user --upgrade pip
-  pip install --user comfy-cli
-  ~/.local/bin/comfy --workspace="$WORKSPACE/comfy" install
-  ~/.local/bin/comfy --install-completion
+  comfy --workspace="$WORKSPACE/comfy" install
+  comfy --install-completion
 else
   log_info "ComfyUI already installed."
 fi
 
-# -- SillyTavern --
+# --- SillyTavern ---
 if [[ ! -d "$WORKSPACE/SillyTavern" ]]; then
   log_info "Cloning SillyTavern…"
   git clone https://github.com/SillyTavern/SillyTavern -b release "$WORKSPACE/SillyTavern"
@@ -38,7 +49,7 @@ else
   log_info "SillyTavern already installed."
 fi
 
-# -- KoboldCpp --
+# --- KoboldCpp ---
 if [[ ! -f "$WORKSPACE/koboldcpp/koboldcpp-linux-x64-cuda1210" ]]; then
   log_info "Setting up KoboldCpp…"
   mkdir -p "$WORKSPACE/koboldcpp"
@@ -46,10 +57,10 @@ if [[ ! -f "$WORKSPACE/koboldcpp/koboldcpp-linux-x64-cuda1210" ]]; then
     https://github.com/LostRuins/koboldcpp/releases/download/v1.91/koboldcpp-linux-x64-cuda1210
   chmod +x "$WORKSPACE/koboldcpp/koboldcpp-linux-x64-cuda1210"
 else
-  log_info "KoboldCPP binary already present."
+  log_info "KoboldCpp binary already present."
 fi
 
-# -- Model Downloads (Batch) --
+# --- Model Downloads (Batch) ---
 MODEL_DIR="$WORKSPACE/PresetModels/base_models"
 mkdir -p "$MODEL_DIR"
 MODEL_URLS=(
@@ -68,4 +79,4 @@ for URL in "${MODEL_URLS[@]}"; do
     fi
 done
 
-log_info "All done! ComfyUI, SillyTavern, KoboldCpp, and base models ready in $WORKSPACE."
+log_info "All done! ComfyUI, SillyTavern, KoboldCpp, and models ready in $WORKSPACE."
