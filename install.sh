@@ -121,9 +121,29 @@ install_koboldcpp() {
   chmod +x "$HOME/koboldcpp/koboldcpp-linux-x64-cuda1210"
 }
 
+#----- Base Models Download----------
+base_models_download() {
+local MODEL_DIR="$HOME/PresetModels/base_models"
+mkdir -p "$MODEL_DIR"
+MODEL_URLS=(
+    "https://huggingface.co/mradermacher/distilgpt2-stable-diffusion-v2-i1-GGUF/resolve/main/distilgpt2-stable-diffusion-v2.i1-Q6_K.gguf"
+    "https://huggingface.co/mradermacher/EraX-VL-2B-V1.5-i1-GGUF/resolve/main/EraX-VL-2B-V1.5.i1-Q6_K.gguf"
+    "https://civitai.com/api/download/models/1699918?type=Model&format=SafeTensor&size=pruned&fp=fp16&token=33aff9b39ae63b68db212418031f9ce1"
+    "https://huggingface.co/nidum/Nidum-Gemma-3-27B-it-Uncensored-GGUF/resolve/main/model-Q6_K.gguf"
+)
+for URL in "${MODEL_URLS[@]}"; do
+    FILE_NAME=$(basename "${URL%%\?*}")
+    if [[ ! -f "$MODEL_DIR/$FILE_NAME" ]]; then
+        echo "[INFO] Downloading $FILE_NAME"
+        wget -q --show-progress -O "$MODEL_DIR/$FILE_NAME" "$URL"
+    else
+        echo "[INFO] $FILE_NAME already exists."
+    fi
+}
+
 # ---- Interactive Model/File Downloader ----
 interactive_download() {
-  local TARGET_DIR="$HOME/PresetModels/full_models"
+  local TARGET_DIR="$HOME/PresetModels/extra_models"
   mkdir -p "$TARGET_DIR"
   while true; do
     echo ""
@@ -133,6 +153,7 @@ interactive_download() {
     echo "Download complete. Add more URLs or press ENTER to finish."
   done
 }
+
 
 # ---- Main Workflow ----
 main() {
@@ -145,6 +166,7 @@ main() {
   install_comfy
   install_sillytavern
   install_koboldcpp
+  base_models_download
 # interactive_download
   log_info "All done! Environment is fully set up."
 }
